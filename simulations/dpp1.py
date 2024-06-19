@@ -150,6 +150,8 @@ if __name__ == "__main__":
     NREP = 100
     dfs = Parallel(n_jobs=NJOBS)(
         delayed(run_simulation)(i) for i in range(NREP))
+    out = pd.concat(dfs)
+    
     
     # NREP = 1
     # dfs = [run_simulation(0)]
