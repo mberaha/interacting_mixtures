@@ -106,6 +106,8 @@ def run_simulation(iternum):
     for n in NDATA:
         data = generate_data(n)
         for rho, nu, s in product(RHO, NU, S):
+            print("Running iter {0}, n: {1}, rho: {2}, nu: {3}, s:{4}".format(
+                iternum, n, rho, nu, s), flush=True)
             prior = deepcopy(default_prior)
             prior.rho = rho
             prior.nu = nu
