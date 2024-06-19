@@ -1,5 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -8,11 +9,14 @@ class State:
     clus: np.array
     alloc_atoms: np.array
     non_alloc_atoms: np.array
+    alloc_vars: np.array
     alloc_jumps: np.array
     non_alloc_jumps: np.array
     u: float
     latent_centers: np.array
     t_vals: np.array
+    active_t_vals: Optional[np.array] = None
+    non_active_t_vals: Optional[np.array] = None
 
 
 @dataclass

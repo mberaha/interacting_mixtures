@@ -30,11 +30,11 @@ def clus_allocs_update(data, state):
     n_a = len(state.alloc_jumps)
     n_na = len(state.non_alloc_jumps)
     probas = np.zeros((len(data), n_a + n_na))
-
     probas[:, :n_a] = tfd.Normal(
         state.alloc_atoms[:, 0], 
         np.sqrt(state.alloc_atoms[:, 1])).log_prob(data[:, np.newaxis])
     probas[:, :n_a] += np.log(state.alloc_jumps)
+    
     probas[:, n_a:] = tfd.Normal(
         state.non_alloc_atoms[:, 0], 
         np.sqrt(state.non_alloc_atoms[:, 1])).log_prob(data[:, np.newaxis])+ \
@@ -60,25 +60,22 @@ def relabel(state):
     state.non_alloc_jumps = np.delete(all_jumps, active_idx)
 
     state.clus = vec_translate(state.clus, old2new)
-    active_t_vals = state.t_vals[active_idx]
-    return state, active_t_vals
+    state.active_t_vals = state.t_vals[active_idx]
+    return state
 
 
 def update_alloc_jumps(state, prior):
     cluscount = np.sum(state.clus[:, np.newaxis] == 
                        np.arange(state.alloc_jumps.shape[0]), axis=0)
-    state.alloc_jumps = np.clip(
-        tfd.Gamma(prior.jump_a + cluscount, prior.jump_b + state.u).sample(),
-        0, 3)
+    state.alloc_jumps = tfd.Gamma(
+        cluscount + prior.jump_a, prior.jump_b + state.u).sample()
     return state
 
 
 def update_non_alloc_jumps(state, prior):
     n_na = state.non_alloc_atoms.shape[0]
-    state.non_alloc_jumps = np.clip(
-        tfd.Gamma(np.ones(n_na) * prior.jump_a, 
-        np.ones(n_na) * (prior.jump_b + state.u)).sample(),
-        0, 5)
+    state.non_alloc_jumps = tfd.Gamma(np.ones(n_na) * prior.jump_a, 
+        np.ones(n_na) * (prior.jump_b + state.u)).sample()
     return state
 
 
@@ -86,6 +83,7 @@ def update_alloc_atoms(data, state, prior):
     data_by_clus = [data[state.clus == i] for i in np.unique(state.clus)]
     stats = np.array([(len(x), np.mean(x), np.var(x)) for x in data_by_clus])
     k = len(data_by_clus)
+
     post_vars = 1.0 / (stats[:, 0] / state.alloc_atoms[:k, 1] + 1.0 / prior.alpha**2)
     post_means = (state.latent_centers[state.t_vals[:k]] / prior.alpha ** 2 + 
                 stats[:, 0] * stats[:, 1] / state.alloc_atoms[:k, 1]) * post_vars
@@ -102,19 +100,25 @@ def update_non_alloc_atoms(state, prior):
         out = []
         t_vals = []
         for i, c in enumerate(means):
-            means = tfd.Normal(c, std).sample(n_points[i])
-            vars = tfd.InverseGamma(prior.var_a, prior.var_b).sample(n_points[i])
+            num_p = int(n_points[i])
+            means = tfd.Normal(c, std).sample(num_p)
+            vars = tfd.InverseGamma(prior.var_a, prior.var_b).sample(num_p)
+            # print("means: ", means)
+            # print("vars: ", vars)
+            # print("xxxxxxx")
             curr = np.hstack([means.reshape(-1, 1), vars.reshape(-1, 1)])
             out.append(curr)
             t_vals.append(np.ones(n_points[i]) * (i + base_t))
         t_vals = np.concatenate(t_vals)
         return out, t_vals
 
-    zeta_vars = 1.0 / (1 / prior.big_var + 1 / prior.alpha ** 2)
-    zeta_means = (state.alloc_atoms[:, 0] / (prior.alpha**2) + 
-                  prior.big_mean / (prior.big_var)) * zeta_vars
-    zetas = tfd.Normal(zeta_means, np.sqrt(zeta_vars)).sample()
-    poi_intensity = np.exp(-prior.gamma * (
+    # zeta_vars = 1.0 / (1 / prior.big_var + 1 / prior.alpha ** 2)
+    # zeta_means = (state.alloc_atoms[:, 0] / (prior.alpha**2) + 
+    #               prior.big_mean / (prior.big_var)) * zeta_vars
+    # zetas = tfd.Normal(zeta_means, np.sqrt(zeta_vars)).sample()
+    zetas = state.latent_centers[np.unique(state.active_t_vals)].astype(float)
+
+    poi_intensity = prior.gamma * np.exp(-prior.gamma * (
         1 - (prior.jump_b / (prior.jump_b + state.u))**prior.jump_a))
     n_points = tfd.Poisson(poi_intensity).sample(len(zetas)).astype(int)
     out, _ = sample_many_atoms(zetas, prior.alpha, n_points, 0)
@@ -131,42 +135,50 @@ def update_non_alloc_atoms(state, prior):
         n_points = tfd.Poisson(prior.gamma).sample(sncp_points).astype(int)
         new_centers = new_centers[n_points > 0]
         n_points = n_points[n_points > 0]
+        
         if len(n_points):
-            out_temp, t_temp = sample_many_atoms(new_centers, prior.alpha, n_points, np.max(state.t_vals))
+            out_temp, t_temp = sample_many_atoms(
+                new_centers, prior.alpha, n_points, np.max(state.t_vals) + 1)
             out.extend(out_temp)
             t_vals = np.concatenate([t_vals, t_temp])
     if len(out):
         state.non_alloc_atoms = np.vstack(out)
-    return state, t_vals, new_centers
+    state.non_active_t_vals = t_vals
+    return state, new_centers
 
 
 def update_latent_centers(data, state, prior):
-    all_centers = state.alloc_atoms[:, 0]
+    # all_centers = state.alloc_atoms[:, 0]
+    all_centers = np.concatenate([
+        state.alloc_atoms[:, 0], state.non_alloc_atoms[:, 0]])
     t_vals = state.t_vals[:all_centers.shape[0]]
     data_by_clus = [data[state.t_vals[state.clus] == i] for i in np.unique(t_vals)]
     stats = np.array([(len(x), np.mean(x), np.var(x)) for x in data_by_clus])
     post_vars = 1.0 / (1.0 / prior.big_var + stats[:, 0] / prior.alpha**2) 
-    post_means = post_vars * (prior.big_mean / prior.big_var + stats[:, 0] * stats[:, 1] / prior.alpha**2)
+    post_means = post_vars * (
+        prior.big_mean / prior.big_var + stats[:, 0] * stats[:, 1] / prior.alpha**2)
+    post_vars[stats[:, 0] == 0] = prior.big_var
+    post_means[stats[:, 0] == 0] = prior.big_mean
     state.latent_centers = tfd.Normal(post_means, np.sqrt(post_vars)).sample()
     return state
 
 
-def update_t_vals(state, prior):
+def relabel_t_vals(state):
     def vec_translate(a, d):
         return np.vectorize(d.__getitem__)(a)
 
-    all_centers = np.concatenate([state.alloc_atoms[:, 0], state.non_alloc_atoms[:, 0]])
-    probas = tfd.Normal(state.latent_centers, prior.alpha).log_prob(all_centers[:, np.newaxis])
-
-    t_vals = tfd.Categorical(logits=probas).sample()
-
+    t_vals = state.t_vals
     active_idx = np.unique(t_vals)
     old2new = {x: i for i, x in enumerate(active_idx)}
     state.latent_centers = state.latent_centers[active_idx]
-
     state.t_vals = vec_translate(t_vals, old2new)
     return state
 
+def update_t_vals(state, prior): 
+    all_centers = np.concatenate([state.alloc_atoms[:, 0], state.non_alloc_atoms[:, 0]])
+    probas = tfd.Normal(state.latent_centers, prior.alpha).log_prob(all_centers[:, np.newaxis])
+    state.t_vals = tfd.Categorical(logits=probas).sample()
+    return relabel_t_vals(state)
 
 def update_u(data, state, prior):
     state.u = tfd.Gamma(data.size, 
@@ -176,24 +188,51 @@ def update_u(data, state, prior):
 
 def step(data, prev_state, prior):
     state = deepcopy(prev_state)
+    # print("number latent scenters 0: {0}, max_t : {1}".format(
+    #     len(state.latent_centers), np.max(state.t_vals)))
+    assert(len(state.latent_centers) ==  (np.max(state.t_vals) + 1))
     state.iter = prev_state.iter + 1
-    state = clus_allocs_update(data, state)
-    state, active_t_vals = relabel(state)
+   
     state = update_alloc_jumps(state, prior)
-    state = update_alloc_atoms(data, state, prior)
-
-    state, non_active_t_vals, non_active_centers = update_non_alloc_atoms(state, prior)
-    state = update_non_alloc_jumps(state, prior)
-
+    # state = update_alloc_atoms(data, state, prior)
+    # print("number latent scenters 1: {0}, max_t : {1}".format(
+    #     len(state.latent_centers), np.max(state.t_vals)))
+    assert(len(state.latent_centers) ==  (np.max(state.t_vals) + 1))
+    state, non_active_centers = update_non_alloc_atoms(state, prior)    
+    # print("non_active_centers: ", non_active_centers)
+   
+    # state.latent_centers = np.concatenate([
+    #     state.latent_centers[np.unique(state.active_t_vals)], non_active_centers])
     state.latent_centers = np.concatenate([
-        state.latent_centers[np.unique(active_t_vals)], non_active_centers])
-    state.t_vals = np.concatenate([active_t_vals, non_active_t_vals]).astype(int)
+        state.latent_centers, non_active_centers])
+    state.t_vals = np.concatenate([state.active_t_vals, 
+                                   state.non_active_t_vals]).astype(int)
+    state = relabel_t_vals(state)
+    # print("number latent scenters 2: {0}, max_t : {1}".format(
+    #     len(state.latent_centers), np.max(state.t_vals)))
+    assert(len(state.latent_centers) ==  (np.max(state.t_vals) + 1))
+    
+    state = update_non_alloc_jumps(state, prior)    
+    
+    state = clus_allocs_update(data, state) 
+    state = relabel(state)
+    # print("number latent scenters 3: {0}, max_t : {1}".format(
+    #     len(state.latent_centers), np.max(state.t_vals)))
+    assert(len(state.latent_centers) ==  (np.max(state.t_vals) + 1))
 
     state = update_latent_centers(data, state, prior)
+    # print("number latent scenters 4: {0}, max_t : {1}".format(
+    #     len(state.latent_centers), np.max(state.t_vals)))
+    assert(len(state.latent_centers) ==  (np.max(state.t_vals) + 1))
+
     state = update_t_vals(state, prior)
+    assert(len(state.latent_centers) ==  (np.max(state.t_vals) + 1))
 
     state = update_u(data, state, prior)
-
+    state = relabel(state)
+    assert(len(state.latent_centers) ==  (np.max(state.t_vals) + 1))
+    
+    # print("*************")
     return state
 
 
