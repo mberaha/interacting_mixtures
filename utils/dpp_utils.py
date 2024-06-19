@@ -50,7 +50,7 @@ def dpp_density_(points, phitildes, R, logscale=True, propto=True):
     Computes the density of a DPP over R
     """
     c_app = compute_c_app(points, phitildes, R)
-    out = np.log(np.linalg.det(c_app))
+    out = np.log(np.linalg.det(c_app) + 1e-10)
     if not propto:
         d_app = np.sum(np.log(1 + phitildes))
         out += (R[1] - R[0]) - d_app
@@ -71,6 +71,7 @@ def birth_arate_(new_loc, curr_means, alloc_means, phitildes, R, u, jump_a, jump
     c_app = compute_c_app(all_atoms, phitildes, R)
     # get matrix blocks
     A = c_app[:(m-1), :(m-1)]
-    dens_ratio = laplace_gamma(u, jump_a, jump_b) * np.linalg.det(c_app) / np.linalg.det(A)
+    dens_ratio = laplace_gamma(u, jump_a, jump_b) * (
+        np.linalg.det(c_app) +1e-10) / (np.linalg.det(A) + 1e-10)
     out = dens_ratio / (len(curr_means) + 1) + 1e-10
     return out
