@@ -72,5 +72,5 @@ def birth_arate_(new_loc, curr_means, alloc_means, phitildes, R, u, jump_a, jump
     # get matrix blocks
     A = c_app[:(m-1), :(m-1)]
     dens_ratio = laplace_gamma(u, jump_a, jump_b) * np.linalg.det(c_app) / np.linalg.det(A)
-    out = dens_ratio / (len(curr_means) + 1)
+    out = dens_ratio / (len(curr_means) + 1) + 1e-10
     return out
