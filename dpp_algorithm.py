@@ -120,7 +120,7 @@ def update_non_alloc_atoms(state, prior):
         return del_loc, np.delete(tmp, idx), idx
     
     def birth_arate(new_loc, curr_means):
-        return _birth_arate(new_loc, curr_means, state.alloc_means, state.phitildes,
+        return birth_arate_(new_loc, curr_means, state.alloc_means, state.phitildes,
                             prior.R, state.u, prior.jump_a, prior.jump_b)
     
     if np.random.uniform() < 0.5:
@@ -149,6 +149,8 @@ def update_non_alloc_jumps(state, prior):
     if n_na > 0:
         state.non_alloc_jumps = np.random.gamma(np.ones(n_na) * prior.jump_a, 
             np.ones(n_na) / (prior.jump_b + state.u))
+    else:
+        state.non_alloc_jumps = np.array([])
     return state
 
 
@@ -213,7 +215,7 @@ def update_rho(state, prior):
     state.rho = prop_rho
     prop_dens = dpp_density(state, prior, propto=False)
 
-    arate = prop_dens + 
+    arate = 0
 
     if arate > np.random.uniform():
         # reject and revert

@@ -61,7 +61,7 @@ def dpp_density_(points, phitildes, R, logscale=True, propto=True):
 
 
 @nb.jit("f8(f8, f8[:], f8[:], f8[:], f8[:], f8, f8, f8)")
-def _birth_arate(new_loc, curr_means, alloc_means, phitildes, R, u, jump_a, jump_b):
+def birth_arate_(new_loc, curr_means, alloc_means, phitildes, R, u, jump_a, jump_b):
     """
     Computes the acceptance rate of a birth proposal adding one atom 'new_loc' to the
     current state
@@ -69,7 +69,7 @@ def _birth_arate(new_loc, curr_means, alloc_means, phitildes, R, u, jump_a, jump
     m = len(alloc_means) + len(curr_means)
     all_atoms = np.concatenate((alloc_means, curr_means, np.array([new_loc])))
     c_app = compute_c_app(all_atoms, phitildes, R)
-    # get matrix bloks
+    # get matrix blocks
     A = c_app[:(m-1), :(m-1)]
     dens_ratio = laplace_gamma(u, jump_a, jump_b) * np.linalg.det(c_app) / np.linalg.det(A)
     out = dens_ratio / (len(curr_means) + 1)

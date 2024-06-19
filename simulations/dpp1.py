@@ -13,7 +13,7 @@ from utils.common import *
 from utils.mfm import run_mfm
 
 
-RHO = 2
+RHO = [2]
 NU = [2, 5]
 S = [0.2, 0.5, 0.75, 0.9]
 NDATA = [100, 200, 500, 1000]
@@ -55,7 +55,7 @@ def initialize_state(data, prior):
     M = 3
     state = State(
         iter=0,
-        clus = np.random.choice(np.arange(M)),
+        clus = np.random.choice(np.arange(M), size=len(data)),
         alloc_means = np.random.uniform(prior.R[0], prior.R[1], size=M),
         non_alloc_means = np.random.uniform(prior.R[0], prior.R[1], size=M),
         alloc_vars = np.ones(M),
@@ -75,7 +75,7 @@ def initialize_state(data, prior):
 
 def run_mcmc(data, state, prior):
     for _ in range(N_BURN):
-        state = dpp.step(state)
+        state = dpp.step(data, state, prior)
 
     states = [state]
     for _ in range(N_ITER):
@@ -104,7 +104,7 @@ def run_simulation(iternum):
     true_dens = eval_true_dens(xgrid)
     stats = []
     for n in NDATA:
-        data = generate_data(n)
+        data, true_clus = generate_data(n)
         for rho, nu, s in product(RHO, NU, S):
             print("Running iter {0}, n: {1}, rho: {2}, nu: {3}, s:{4}".format(
                 iternum, n, rho, nu, s), flush=True)
@@ -150,5 +150,8 @@ if __name__ == "__main__":
     NREP = 100
     dfs = Parallel(n_jobs=NJOBS)(
         delayed(run_simulation)(i) for i in range(NREP))
-    out = pd.concat(dfs)
+    
+    # NREP = 1
+    # dfs = [run_simulation(0)]
+    # out = pd.concat(dfs)
     pd.to_pickle(out, "dpp1_simulation_out.pickle")
