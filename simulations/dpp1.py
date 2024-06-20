@@ -15,15 +15,15 @@ from utils.mfm import run_mfm
 
 RHO = [2]
 NU = [2, 5]
-S = [0.2, 0.5, 0.75, 0.9]
-NDATA = [100, 200, 500, 1000]
+S = [0.1, 0.25, 0.5, 0.75, 0.9]
+NDATA = [50, 100, 200, 500]
 
 N_ITER = 5000
-N_BURN = 5000
+N_BURN = 25000
 
 default_prior = Prior(
-    R=np.array([-20.0, 20.0]),
-    mh_sigma=1.5,
+    R=np.array([-15.0, 15.0]),
+    mh_sigma=2.0,
     jump_a=2.0,
     jump_b=1.0,
     var_a=3.0,
@@ -39,7 +39,7 @@ def eval_true_dens(x):
 
 
 def hellinger(f, g, xgrid, squared=True):
-    out = 0.5 * trapz(np.sqrt(f) - np.sqrt(g), xgrid)
+    out = 0.5 * trapz((np.sqrt(f) - np.sqrt(g))**2, xgrid)
     if not squared:
         out = np.sqrt(out)
     return out
