@@ -3,6 +3,7 @@ from copy import deepcopy
 from tensorflow_probability.substrates import numpy as tfp
 from dpp_state import State, Prior
 from sklearn.metrics import pairwise_distances
+from math import isfinite
 tfd = tfp.distributions
 import numba as nb
 import numpy.core.numeric as nx
@@ -58,8 +59,13 @@ def sample_mean(atom_idx, curr_data, state, prior):
     prop_ll = uninorm_lpdf_many2one(curr_data, prop_val, var)
     prop_prior = dpp_density(state, prior)
 
-    arate = np.exp(prop_ll + prop_prior - (curr_ll + curr_prior))
-    if np.random.uniform() < arate:
+    assert(isfinite(prop_ll))
+    assert(isfinite(prop_prior))
+    assert(isfinite(curr_ll))
+    assert(isfinite(curr_prior))
+
+    arate = prop_ll + prop_prior - (curr_ll + curr_prior)
+    if np.log(np.random.uniform()) < arate:
         state.alloc_means[atom_idx] = prop_val
     else: 
         state.alloc_means[atom_idx] = curr_val
