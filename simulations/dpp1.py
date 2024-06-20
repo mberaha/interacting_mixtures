@@ -16,7 +16,10 @@ from utils.mfm import run_mfm
 RHO = [2]
 NU = [2, 5]
 S = [0.1, 0.25, 0.5, 0.75, 0.9]
-NDATA = [50, 100, 200, 500]
+NDATA = [100, 200, 500]
+# NU = [2]
+# NDATA = [100]
+# S = [0.5]
 
 N_ITER = 5000
 N_BURN = 25000
@@ -42,6 +45,10 @@ def hellinger(f, g, xgrid, squared=True):
     out = 0.5 * trapz((np.sqrt(f) - np.sqrt(g))**2, xgrid)
     if not squared:
         out = np.sqrt(out)
+    return out
+
+def tv_dist(f, g, xgrid):
+    out = 0.5 * trapz(np.abs(f - g), xgrid)
     return out
 
 def generate_data(ndata):
@@ -116,7 +123,7 @@ def run_simulation(iternum):
             chain = run_mcmc(data, state, prior)
 
             estim_dens = estimate_dens(chain, xgrid)
-            hell = hellinger(true_dens, estim_dens, xgrid)
+            tv = tv_dist(true_dens, estim_dens, xgrid)
             avg_nclus = np.mean([
                 len(np.unique(s.clus)) for s in chain
             ])
@@ -126,7 +133,7 @@ def run_simulation(iternum):
                 "rho": rho,
                 "nu": nu, 
                 "s": s,
-                "hell": hell,
+                "tv": tv,
                 "nlcus": avg_nclus,
                 "iter": iternum
             })
@@ -138,7 +145,7 @@ def run_simulation(iternum):
             "rho": -1,
             "nu": -1, 
             "s": -1,
-            "hell": hellinger(mfm_dens, true_dens, xgrid),
+            "tv": tv_dist(mfm_dens, true_dens, xgrid),
             "nlcus": mfm_clus,
             "iter": iternum
             })
