@@ -100,6 +100,7 @@ def estimate_dens(states, xgrid):
         means = np.concatenate([s.alloc_means, s.non_alloc_means])
         vars = np.concatenate([s.alloc_vars, s.non_alloc_vars])
         weights = np.concatenate([s.alloc_jumps, s.non_alloc_jumps])
+        weights /= np.sum(weights)
         out += eval_mixture_density(xgrid, means, vars, weights)
 
     out /= len(states)
