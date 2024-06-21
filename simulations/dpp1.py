@@ -125,7 +125,7 @@ def run_simulation(iternum):
 
             estim_dens = estimate_dens(chain, xgrid)
             tv = tv_dist(true_dens, estim_dens, xgrid)
-            avg_nclus = np.mean([
+            avg_nclus = np.median([
                 len(np.unique(s.clus)) for s in chain
             ])
             stats.append({

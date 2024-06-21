@@ -8,10 +8,16 @@ fixed_value {
 }
 """
 
+dp_params = """
+fixed_value {
+    totalmass: 2.0
+}
+"""
+
 g0_params = """
 fixed_values {
     mean: 0.0
-    var_scaling: 0.1
+    var_scaling: 0.05
     shape: 2.0
     scale: 2.0
 }
@@ -22,17 +28,17 @@ algo_params = """
     rng_seed: 20201124
     iterations: 10000
     burnin: 5000
-    init_num_clusters: 6
+    init_num_clusters: 3
     neal8_n_aux: 10
 """
 
 
 def run_mfm(data, xgrid):
     log_dens, nclus, _, _ , _= run_mcmc(
-        "NNIG", "MFM", data, g0_params, mfm_params, algo_params, 
+        "NNIG", "DP", data, g0_params, dp_params, algo_params, 
         dens_grid=xgrid, return_clusters=False, return_num_clusters=True,
         return_best_clus=False)
     
-    estim_dens = np.mean(np.exp(log_dens), axis=1)
-    avg_nclus = np.mean(nclus)
+    estim_dens = np.mean(np.exp(log_dens), axis=0)
+    avg_nclus = np.median(nclus)
     return estim_dens, avg_nclus
