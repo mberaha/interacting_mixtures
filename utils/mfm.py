@@ -55,7 +55,7 @@ algo_params = """
 
 def run_mfm(data, xgrid):
     log_dens, nclus, _, _ , _= run_mcmc(
-        "NNIG", "MFM", data, mfm_params, dp_params, algo_params, 
+        "NNIG", "MFM", data, g0_params, mfm_params, algo_params, 
         dens_grid=xgrid, return_clusters=False, return_num_clusters=True,
         return_best_clus=False)
     
