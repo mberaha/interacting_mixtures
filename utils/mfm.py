@@ -1,6 +1,26 @@
 import numpy as np
 from bayesmixpy import build_bayesmix, run_mcmc
 
+
+import sys, traceback
+
+class Suppressor():
+
+    def __enter__(self):
+        self.stdout = sys.stdout
+        sys.stdout = self
+
+    def __exit__(self, exception_type, value, traceback):
+        sys.stdout = self.stdout
+        if exception_type is not None:
+            # Do normal exception handling
+            raise Exception(f"Got exception: {exception_type} {value} {traceback}")
+
+    def write(self, x): pass
+
+    def flush(self): pass
+
+
 mfm_params = """
 fixed_value {
     lambda: 4.0
@@ -34,11 +54,12 @@ algo_params = """
 
 
 def run_mfm(data, xgrid):
-    log_dens, nclus, _, _ , _= run_mcmc(
-        "NNIG", "MFM", data, mfm_params, dp_params, algo_params, 
-        dens_grid=xgrid, return_clusters=False, return_num_clusters=True,
-        return_best_clus=False)
-    
-    estim_dens = np.mean(np.exp(log_dens), axis=0)
-    avg_nclus = np.median(nclus)
+    with Suppressor():
+        log_dens, nclus, _, _ , _= run_mcmc(
+            "NNIG", "MFM", data, mfm_params, dp_params, algo_params, 
+            dens_grid=xgrid, return_clusters=False, return_num_clusters=True,
+            return_best_clus=False)
+        
+        estim_dens = np.mean(np.exp(log_dens), axis=0)
+        avg_nclus = np.median(nclus)
     return estim_dens, avg_nclus
