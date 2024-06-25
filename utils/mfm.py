@@ -4,7 +4,7 @@ from bayesmixpy import build_bayesmix, run_mcmc
 mfm_params = """
 fixed_value {
     lambda: 4.0
-    gamma: 1.0
+    gamma: 2.0
 }
 """
 
@@ -35,7 +35,7 @@ algo_params = """
 
 def run_mfm(data, xgrid):
     log_dens, nclus, _, _ , _= run_mcmc(
-        "NNIG", "DP", data, g0_params, dp_params, algo_params, 
+        "NNIG", "MFM", data, mfm_params, dp_params, algo_params, 
         dens_grid=xgrid, return_clusters=False, return_num_clusters=True,
         return_best_clus=False)
     
