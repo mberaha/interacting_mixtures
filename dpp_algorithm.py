@@ -4,6 +4,7 @@ from tensorflow_probability.substrates import numpy as tfp
 from dpp_state import State, Prior
 from sklearn.metrics import pairwise_distances
 from math import isfinite
+from scipy.special import logit, expit
 tfd = tfp.distributions
 import numba as nb
 import numpy.core.numeric as nx
@@ -214,25 +215,98 @@ def relabel(state):
 
 def update_rho(state, prior):
     curr_rho = state.rho
-    curr_dens = dpp_density(state, prior, propto=False)
-
     log_rho = np.log(state.rho)
-    prop_rho = np.exp(log_rho + np.random.normal(0, 0.5))
-    state.rho = prop_rho
+
+    # backup stuff
+    curr_phis = state.phis
+    curr_phitildes = state.phitildes
+    curr_dens = dpp_density(state, prior, propto=False)
+    curr_prior = gamma_lpdf(curr_rho, prior.rho_a, prior.rho_b) + log_rho
+
+    log_prop_rho = log_rho + np.random.normal(0, 0.25)
+    state.rho = np.exp(log_prop_rho)
+    state = compute_phis(state)
     prop_dens = dpp_density(state, prior, propto=False)
+    prop_prior = gamma_lpdf(state.rho, prior.rho_a, prior.rho_b) + log_prop_rho
+    
 
-    arate = 0
+    log_arate = (prop_dens + prop_prior ) - (
+        curr_dens + curr_prior)
+    
+    assert(isfinite(curr_dens))
+    assert(isfinite(prop_dens))
+    assert(isfinite(prop_prior))
+    assert(isfinite(curr_prior))
 
-    if arate > np.random.uniform():
+    if log_arate < np.log(np.random.uniform()):
         # reject and revert
         state.rho = curr_rho
+        state.phis = curr_phis
+        state.phitildes = curr_phitildes
 
     return state
 
 def update_nu(state, prior):
-    return state
+    curr_nu = state.nu
+    log_nu = np.log(curr_nu)
+
+    
+
+    # backup stuff
+    curr_phis = state.phis
+    curr_phitildes = state.phitildes
+    curr_dens = dpp_density(state, prior, propto=False)
+    curr_prior = gamma_lpdf(curr_nu, prior.nu_a, prior.nu_b) + log_nu
+
+    log_prop_nu = log_nu + np.random.normal(0, 0.25)
+    state.nu = np.exp(log_prop_nu)
+    state = compute_phis(state)
+    prop_dens = dpp_density(state, prior, propto=False)
+    prop_prior = gamma_lpdf(state.nu, prior.nu_a, prior.nu_b) + log_prop_nu
+
+    assert(isfinite(curr_dens))
+    assert(isfinite(prop_dens))
+    assert(isfinite(prop_prior))
+    assert(isfinite(curr_prior))
+
+    log_arate = (prop_dens + prop_prior ) - (
+        curr_dens + curr_prior)
+
+    if log_arate < np.log(np.random.uniform()):
+        # reject and revert
+        state.nu = curr_nu
+        state.phis = curr_phis
+        state.phitildes = curr_phitildes
+
+    return state  
 
 def update_s(state, prior):
+    curr_s = state.s
+    logit_s = logit(curr_s)
+
+    # backup stuff
+    curr_phis = state.phis
+    curr_phitildes = state.phitildes
+    curr_dens = dpp_density(state, prior, propto=False)
+    curr_prior = beta_lpdf(curr_s, prior.rho_a, prior.rho_b) + \
+        np.log(curr_s * (1 - curr_s))
+
+    prop_s = expit(logit_s + np.random.normal(0, 0.5))
+    state.s = prop_s
+    state = compute_phis(state)
+    prop_dens = dpp_density(state, prior, propto=False)
+    prop_prior = beta_lpdf(prop_s, prior.rho_a, prior.rho_b) + \
+        np.log(prop_s * (1 - prop_s))
+
+    log_arate = (prop_dens + prop_prior ) - (
+        curr_dens + curr_prior)
+
+    if log_arate < np.log(np.random.uniform()):
+        # reject and revert
+        state.s = curr_s
+        state.phis = curr_phis
+        state.phitildes = curr_phitildes
+
     return state
 
 
@@ -245,12 +319,18 @@ def step(data, prev_state: State, prior:Prior):
     state = update_alloc_jumps(state, prior)
     state = update_non_alloc_atoms(state, prior)    
     state = update_non_alloc_jumps(state, prior)    
-
     state = clus_allocs_update(data, state)
     state = relabel(state)
-   
+
     state = update_u(data, state, prior)
-    state = update_rho(state, prior)
-    state = update_nu(state, prior)
+
+    if prior.update_rho:
+        state = update_rho(state, prior)
+    
+    if prior.update_nu:
+        state = update_nu(state, prior)
+
+    if prior.update_s:
+        state = update_s(state, prior)
 
     return state

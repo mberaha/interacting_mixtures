@@ -15,12 +15,12 @@ from utils.mfm import run_mfm
 
 NDATA = [500]
 
-N_ITER = 25000
+N_ITER = 5000
 N_BURN = 25000
 
 default_prior = Prior(
-    R=np.array([-20.0, 20.0]),
-    mh_sigma=1.5,
+    R=np.array([-15.0, 15.0]),
+    mh_sigma=2.0,
     jump_a=2.0,
     jump_b=1.0,
     var_a=3.0,
@@ -52,7 +52,7 @@ def initialize_state(data, prior):
     M = 3
     state = State(
         iter=0,
-        clus = np.random.choice(np.arange(M)),
+        clus = np.random.choice(np.arange(M), size=len(data)),
         alloc_means = np.random.uniform(prior.R[0], prior.R[1], size=M),
         non_alloc_means = np.random.uniform(prior.R[0], prior.R[1], size=M),
         alloc_vars = np.ones(M),
@@ -72,7 +72,7 @@ def initialize_state(data, prior):
 
 def run_mcmc(data, state, prior):
     for _ in range(N_BURN):
-        state = dpp.step(state)
+        state = dpp.step(data, state, prior)
 
     states = [state]
     for _ in range(N_ITER):
@@ -116,17 +116,17 @@ def run_simulation(iternum):
     xgrid = np.linspace(-15, 15, 5000)
     true_dens = eval_true_dens(xgrid)
     stats = []
-    data = generate_data(NDATA)
-    
+    data, true_clus = generate_data(NDATA)
+
     # update only rho
     prior = deepcopy(default_prior)
     prior.update_rho = True
-    prior.rho_a = 4
+    prior.rho_a = 10
     prior.rho_b = 2
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
-    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum)
+    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
     stats.append(curr_stats)
 
     # update rho and s
@@ -137,28 +137,25 @@ def run_simulation(iternum):
     prior.update_s = True
     prior.s_a = 5
     prior.s_b = 2
+    prior.update_nu = False
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
-    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum)
+    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
     stats.append(curr_stats)
-
 
     # update rho and nu
     prior = deepcopy(default_prior)
     prior.update_rho = True
     prior.rho_a = 4
     prior.rho_b = 2
-    prior.update_s = True
-    prior.s_a = 5
-    prior.s_b = 2
     prior.update_nu = True
-    prior.s_a = 4
-    prior.s_b = 2
+    prior.nu_a = 4
+    prior.nu_b = 2
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
-    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum)
+    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
     stats.append(curr_stats)
 
     # update all
@@ -167,12 +164,15 @@ def run_simulation(iternum):
     prior.rho_a = 4
     prior.rho_b = 2
     prior.update_nu = True
-    prior.s_a = 4
+    prior.nu_a = 4
+    prior.nu_b = 2
+    prior.update_s = True
+    prior.s_a = 5
     prior.s_b = 2
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
-    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum)
+    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
     curr_stats["update_rho"] = True
     curr_stats["update_s"] = False
     curr_stats["update_nu"] = True

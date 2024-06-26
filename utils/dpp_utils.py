@@ -49,8 +49,16 @@ def dpp_density_(points, phitildes, R, logscale=True, propto=True):
     """
     Computes the density of a DPP over R
     """
+
     c_app = compute_c_app(points, phitildes, R)
-    out = np.log(np.linalg.det(c_app) + 1e-10)
+    max_elem = np.max(c_app)
+    n_points = len(points)
+
+    c_app_scale = c_app / max_elem
+    c_app_scale = 0.5 * (c_app_scale + c_app_scale.transpose()) + 1e-4 * np.eye(n_points)
+
+    chol_factor = np.linalg.cholesky(c_app_scale)
+    out = 2 * np.sum(np.log(np.diag(chol_factor))) + np.log(max_elem) * n_points
     if not propto:
         d_app = np.sum(np.log(1 + phitildes))
         out += (R[1] - R[0]) - d_app

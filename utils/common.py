@@ -1,5 +1,6 @@
 import numpy as np
 import numba as nb
+from scipy.special import gammaln
 
 @nb.njit("f8(f8, f8, f8)")
 def laplace_gamma(u, a, b):
@@ -49,3 +50,19 @@ def rand_choice_nb(arr, prob):
     :return: A random sample from the given array with a given probability.
     """
     return arr[np.searchsorted(np.cumsum(prob), np.random.random(), side="right")]
+
+
+# @nb.jit("f8(f8, f8, f8)")
+def gamma_lpdf(x, a, b):
+    return a * np.log(b) - gammaln(a) + (a - 1) * np.log(x) - b * x
+
+
+# @nb.jit("f8(f8, f8)")
+def betaln(a, b):
+    return gammaln(a) + gammaln(b) - gammaln(a + b)
+
+
+# @nb.jit("f8(f8, f8, f8)")
+def beta_lpdf(x, a, b):
+    return (a - 1) * np.log(x) + (b - 1) * np.log(1 - x) - betaln(a, b)
+
