@@ -106,7 +106,7 @@ def estimate_dens(states, xgrid):
 def stats_from_chains(chain, true_dens, xgrid, iternum, prior):
     estim_dens = estimate_dens(chain, xgrid)
     hell = hellinger(true_dens, estim_dens, xgrid)
-    tv = tv(true_dens, estim_dens, xgrid)
+    tv = tv_dist(true_dens, estim_dens, xgrid)
     avg_nclus = np.mean([
         len(np.unique(s.clus)) for s in chain
     ])
@@ -131,8 +131,8 @@ def run_simulation(iternum):
     # update only s
     prior = deepcopy(default_prior)
     prior.update_s = True
-    prior.s_a = 2
-    prior.s_b = 2
+    prior.s_a = 2.0
+    prior.s_b = 2.0
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
@@ -145,8 +145,8 @@ def run_simulation(iternum):
     # update only nu
     prior = deepcopy(default_prior)
     prior.update_nu = True
-    prior.nu_a = 4
-    prior.nu_b = 2
+    prior.nu_a = 4.0
+    prior.nu_b = 2.0
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
@@ -160,11 +160,11 @@ def run_simulation(iternum):
     # update rho and s
     prior = deepcopy(default_prior)
     prior.update_rho = True
-    prior.rho_a = 4
-    prior.rho_b = 2
+    prior.rho_a = 4.0
+    prior.rho_b = 2.0
     prior.update_s = True
-    prior.s_a = 5
-    prior.s_b = 2
+    prior.s_a = 2.0
+    prior.s_b = 2.0
     prior.update_nu = False
 
     state = initialize_state(data, prior)
@@ -175,14 +175,14 @@ def run_simulation(iternum):
     # update all
     prior = deepcopy(default_prior)
     prior.update_rho = True
-    prior.rho_a = 4
-    prior.rho_b = 2
+    prior.rho_a = 4.0
+    prior.rho_b = 2.0
     prior.update_nu = True
-    prior.nu_a = 4
-    prior.nu_b = 2
+    prior.nu_a = 4.0
+    prior.nu_b = 2.0
     prior.update_s = True
-    prior.s_a = 5
-    prior.s_b = 2
+    prior.s_a = 2.0
+    prior.s_b = 2.0
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
@@ -201,3 +201,5 @@ if __name__ == "__main__":
         delayed(run_simulation)(i) for i in range(NREP))
     out = pd.concat(dfs)
     pd.to_pickle(out, "dpp2_simulation_out.pickle")
+
+    # run_simulation(0)
