@@ -288,15 +288,16 @@ def update_s(state, prior):
     curr_phis = state.phis
     curr_phitildes = state.phitildes
     curr_dens = dpp_density(state, prior, propto=False)
-    curr_prior = beta_lpdf(curr_s, prior.rho_a, prior.rho_b) + \
+    curr_prior = beta_lpdf(curr_s, prior.s_a, prior.s_b) + \
         np.log(curr_s * (1 - curr_s))
 
-    prop_s = expit(logit_s + np.random.normal(0, 0.5))
+    prop_s = expit(logit_s + np.random.normal(0.0, 0.5))
     state.s = prop_s
     state = compute_phis(state)
     prop_dens = dpp_density(state, prior, propto=False)
-    prop_prior = beta_lpdf(prop_s, prior.rho_a, prior.rho_b) + \
+    prop_prior = beta_lpdf(prop_s, prior.s_a, prior.s_b) + \
         np.log(prop_s * (1 - prop_s))
+    
 
     log_arate = (prop_dens + prop_prior ) - (
         curr_dens + curr_prior)
