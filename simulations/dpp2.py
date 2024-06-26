@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pickle
 
 from scipy.stats import t
 from scipy.integrate import trapz
@@ -26,8 +27,8 @@ default_prior = Prior(
     var_a=3.0,
     var_b=3.0,
     nu = 2.0,
-    s = 0.9,
-    rho = 3.0,
+    s = 0.75,
+    rho = 2.0,
 )
 
 
@@ -109,6 +110,7 @@ def stats_from_chains(chain, true_dens, xgrid, iternum, prior):
     avg_nclus = np.mean([
         len(np.unique(s.clus)) for s in chain
     ])
+
     return {
         "hell": hell,
         "tv": tv_dist,
@@ -126,16 +128,34 @@ def run_simulation(iternum):
     stats = []
     data, true_clus = generate_data(NDATA)
 
-    # update only rho
+    # update only s
     prior = deepcopy(default_prior)
-    prior.update_rho = True
-    prior.rho_a = 10
-    prior.rho_b = 2
+    prior.update_s = True
+    prior.s_a = 2
+    prior.s_b = 2
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
     stats.append(curr_stats)
+    if iternum == 0:
+        with open("chains_s.pickle", "wb") as fp:
+            pickle.dump(chain, fp)
+
+    # update only nu
+    prior = deepcopy(default_prior)
+    prior.update_nu = True
+    prior.nu_a = 4
+    prior.nu_b = 2
+
+    state = initialize_state(data, prior)
+    chain = run_mcmc(data, state, prior)
+    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
+    stats.append(curr_stats)
+    if iternum == 0:
+        with open("chains_nu.pickle", "wb") as fp:
+            pickle.dump(chain, fp)
+
 
     # update rho and s
     prior = deepcopy(default_prior)
@@ -146,20 +166,6 @@ def run_simulation(iternum):
     prior.s_a = 5
     prior.s_b = 2
     prior.update_nu = False
-
-    state = initialize_state(data, prior)
-    chain = run_mcmc(data, state, prior)
-    curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
-    stats.append(curr_stats)
-
-    # update rho and nu
-    prior = deepcopy(default_prior)
-    prior.update_rho = True
-    prior.rho_a = 4
-    prior.rho_b = 2
-    prior.update_nu = True
-    prior.nu_a = 4
-    prior.nu_b = 2
 
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
