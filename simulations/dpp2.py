@@ -36,10 +36,16 @@ def eval_true_dens(x):
 
 
 def hellinger(f, g, xgrid, squared=True):
-    out = 0.5 * trapz(np.sqrt(f) - np.sqrt(g), xgrid)
+    out = 0.5 * trapz((np.sqrt(f) - np.sqrt(g))**2, xgrid)
     if not squared:
         out = np.sqrt(out)
     return out
+
+
+def tv_dist(f, g, xgrid):
+    out = 0.5 * trapz(np.abs(f - g), xgrid)
+    return out
+
 
 def generate_data(ndata):
     mix_component = np.random.choice(2, size=ndata)
@@ -99,11 +105,13 @@ def estimate_dens(states, xgrid):
 def stats_from_chains(chain, true_dens, xgrid, iternum, prior):
     estim_dens = estimate_dens(chain, xgrid)
     hell = hellinger(true_dens, estim_dens, xgrid)
+    tv = tv(true_dens, estim_dens, xgrid)
     avg_nclus = np.mean([
         len(np.unique(s.clus)) for s in chain
     ])
     return {
         "hell": hell,
+        "tv": tv_dist,
         "nlcus": avg_nclus,
         "iter": iternum,
         "update_rho": prior.update_rho,
