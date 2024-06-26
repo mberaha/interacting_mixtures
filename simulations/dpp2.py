@@ -113,7 +113,7 @@ def stats_from_chains(chain, true_dens, xgrid, iternum, prior):
 
     return {
         "hell": hell,
-        "tv": tv_dist,
+        "tv": tv,
         "nlcus": avg_nclus,
         "iter": iternum,
         "update_rho": prior.update_rho,
