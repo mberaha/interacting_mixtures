@@ -187,9 +187,6 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
-    curr_stats["update_rho"] = True
-    curr_stats["update_s"] = False
-    curr_stats["update_nu"] = True
     stats.append(curr_stats)
 
     return pd.DataFrame(stats)
