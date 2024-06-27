@@ -193,6 +193,9 @@ def run_simulation(iternum):
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
     curr_stats["model"] = "M4"
     stats.append(curr_stats)
+    if iternum == 0:
+        with open("chains_rho.pickle", "wb") as fp:
+            pickle.dump(chain, fp)
 
     return pd.DataFrame(stats)
 
