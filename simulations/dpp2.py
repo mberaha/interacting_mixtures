@@ -97,6 +97,7 @@ def estimate_dens(states, xgrid):
         means = np.concatenate([s.alloc_means, s.non_alloc_means])
         vars = np.concatenate([s.alloc_vars, s.non_alloc_vars])
         weights = np.concatenate([s.alloc_jumps, s.non_alloc_jumps])
+        weights /= np.sum(weights)
         out += eval_mixture_density(xgrid, means, vars, weights)
 
     out /= len(states)
@@ -137,7 +138,7 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
-    stats["model"] = "M1"
+    curr_stats["model"] = "M1"
     stats.append(curr_stats)
     if iternum == 0:
         with open("chains_s.pickle", "wb") as fp:
@@ -152,7 +153,7 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
-    stats["model"] = "M2"
+    curr_stats["model"] = "M2"
     stats.append(curr_stats)
     if iternum == 0:
         with open("chains_nu.pickle", "wb") as fp:
@@ -172,7 +173,7 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
-    stats["model"] = "M3"
+    curr_stats["model"] = "M3"
     stats.append(curr_stats)
 
     # update all
@@ -190,7 +191,7 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
-    stats["model"] = "M4"
+    curr_stats["model"] = "M4"
     stats.append(curr_stats)
 
     return pd.DataFrame(stats)
