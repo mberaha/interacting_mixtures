@@ -137,6 +137,7 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
+    stats["model"] = "M1"
     stats.append(curr_stats)
     if iternum == 0:
         with open("chains_s.pickle", "wb") as fp:
@@ -151,6 +152,7 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
+    stats["model"] = "M2"
     stats.append(curr_stats)
     if iternum == 0:
         with open("chains_nu.pickle", "wb") as fp:
@@ -170,6 +172,7 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
+    stats["model"] = "M3"
     stats.append(curr_stats)
 
     # update all
@@ -187,6 +190,7 @@ def run_simulation(iternum):
     state = initialize_state(data, prior)
     chain = run_mcmc(data, state, prior)
     curr_stats = stats_from_chains(chain, true_dens, xgrid, iternum, prior)
+    stats["model"] = "M4"
     stats.append(curr_stats)
 
     return pd.DataFrame(stats)
