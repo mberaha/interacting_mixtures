@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Bayesian Mixture Models with Repulsive and Attractive Atoms
 
 This repository contains the code supporting the paper ``Bayesian Mixture Models with Repulsive and Attractive Atoms'' by Beraha, Argiento, Camerlenghi, and Guglielmi.
@@ -28,14 +27,3 @@ seaborn
 ```
 
 which can be installed via `pip`. Moreover, you should also install the `bayesmixpy` package as described [here](https://github.com/bayesmix-dev/bayesmix/tree/master/python).
-=======
-# NORMALIZED RANDOM MEAURES WITH INTERACTING ATOMS 
-
-Code to reproduce the plots in the paper by Mario Beraha, Raffaele Argiento, Federico Camerlenghi, and Alessandra Guglielmi.
-
-To reproduce Figure 1, use the notebook `Prior Simulation.ipynb`
-
-To reproduce Figure 2, use the notebook `SNCP Simulation.ipynb`
-
-The files `state.py` and `algorithm.py` contain the source code to perform posterior infrence with Shot-Noise Cox Process mixture models.
->>>>>>> af217c5e9a7f5ee93c4ffca594d1f8f93b576594
